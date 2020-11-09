@@ -63,6 +63,80 @@ class HashTableEntry:
         self.value = value
         self.next = None
 
+    def __eq__(self, other):
+        if isinstance(other, HashTableEntry):
+            return self.key == other.key
+        return False
+
+class Node:
+    def __init__(self, value):
+        self.value = value
+        self.next = None
+
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    def __repr__(self):
+        currStr = ""
+        curr = self.head
+        while curr != None:
+            currStr += f'{str(curr.value)} -->'
+            curr = curr.next
+
+        return currStr
+
+    def find(self, value):
+        # return node w/ value
+        # runtinme: O(n) - n = number of nodes
+        curr = self.head
+        while curr != None:
+            if curr.value == value:
+                return curr
+            curr = curr.next
+        return None
+
+    # deletes node w /given value then returns that node
+    # runtime: O(n) where n = number of nodes
+    def delete(self, value):
+        curr = self.head
+
+        # special case for Head delete
+        if curr.value == value:
+            self.head = curr.next
+            curr.next = None
+            return curr
+
+        prev = None
+
+        while curr != None:
+            if curr.value == value:
+                prev.next = curr.next
+                curr.next = None
+                return curr
+            else:
+                prev = curr
+                curr = curr.next
+
+        return None
+
+    #insert node at head of list
+    # runtime: O(1)
+    def insert_at_head(self, node):
+        node.next = self.head
+        self.head = node
+
+    #overwtire node or insert node at head
+    #runtime: O(n)
+    def insert_at_head_or_overwrite(self, node):
+        existingNode = self.find(node.value) # O(n)
+        if existingNode !=None:
+            existingNode.value = node.value
+            return False
+        else:
+            self.insert_at_head(node) # O(1)
+            return True
 
 # Hash table can't have fewer than this many slots
 # Constant - No additional flux for this statement. No lower than 8 slots.
@@ -100,8 +174,8 @@ class HashTable:
         Length of Table.
         """
         # Your code here
-        # return len(self.table)
-        return self.capacity
+        return len(self.table)
+        # return self.capacity
 
     def get_load_factor(self):
         """
@@ -110,6 +184,11 @@ class HashTable:
         Implement this.
 
         I assume Load refers to how much work it needs to use.
+
+        Load factor = num of elements in the hash table / num slots
+        self.count = number of elements
+        self.capacity = number of slots or len(self.table)
+
         """
         # Your code here
         # total = 0
@@ -123,7 +202,8 @@ class HashTable:
         # load = total/len(self.table)
 
         # return load
-        return self.count / self.capacity
+        # return self.count / self.capacity
+        return self.count / self.get_num_slots()
 
     def fnv1(self, key):
         """
@@ -189,6 +269,24 @@ class HashTable:
         find value
         store value
         return value
+
+        Linked List Method:
+
+        hash_index = self.hash_index(key)
+        if self.table[hash_index] !=None:
+            linked_list = self.table[hash_index]
+            did_add_new_node = linked_list.insert_at_head_or_overwrite(Node(HashTableEntry(key, vale)))
+            if did_add_new_node:
+                self.count += 1
+        else:
+            linked_list = LinkedList()
+            linked_list.insert_at_head(Node(HashTableEntry(key,value)))
+            self.table[hash_index] = linked_list
+            self.count += 1
+
+        if self.get_load_factor() < 0.7:
+            self.resize(self.get_num_slots() * 2)
+
         """
         # Your code here
         index = self.hash_index(key)
@@ -211,6 +309,9 @@ class HashTable:
 
     def delete(self, key):
         """
+
+        O(n)
+        
         Remove the value stored with the given key.
 
         Print a warning if the key is not found.
@@ -221,6 +322,26 @@ class HashTable:
         Use figures from Linked List for removing from list.
         Apply new head if needed.
         Apply new key to location if there are some after.
+
+
+        value = self.table[self.hash_index(key)]
+        if value == None:
+            print('Value not found')
+        self.table[self.hash_index(key)] = None
+
+        Linked List:
+
+        hash_index = self.hash_index(key)
+        if self.table[hash_index] != None:
+            linked_list = self.table[hash_index]
+            did_delete_node = linked_list.delete(HashTableEntry(key, None))
+            if did_delete_node != None:
+                self.count -= 1
+                if self.get_load_factor() < 0.2:
+                    self.resize(self.get_num_slots() / 2)
+            else:
+                print("Node not Found")
+
         """
         # Your code here
         index = self.hash_index(key)  # set location
@@ -274,6 +395,20 @@ class HashTable:
         Implement this.
 
         Not too much different. Get the item itself.
+        return self.table(self.hash_index(key))
+
+        Linked List method:
+
+        index = self.hash_index(key)
+        if self.table[index] !=None:
+            linked_list = self.table[index]
+            node = linked_list(HashTableEntry(key, None))
+            if node !=None:
+                return node.value.value
+
+        Run Time: O(1)
+        Worst: O(n)
+
         """
         # Your code here
         index = self.hash_index(key)
@@ -313,6 +448,30 @@ class HashTable:
         1 = full
         0 = empty
         .1 to .9 is range amount between empty and full.
+
+        Linked List:
+
+        old_tabel = self.table
+        self.table = [None] + int(new_capacity)
+        self.count = 0
+        for element in old_table:
+            if element == None:
+                continue
+            curr_node = element.head
+            while curr_node !=None:
+                temp = curr_node.next
+                curr_node.next = None
+                hash_index = self.hash_index(curr_node.value.key)
+
+                if self.table[hash_index] !=None:
+                    self.table[hash_index].insert_at_head(curr_node)
+                else:
+                    linked_list = LinkedList()
+                    linked_list.insert_at_head(curr_node)
+                    self.table[hash_index] = linked_list
+
+                curr_node = temp
+                self.count += 1
         """
         # Your code here
         # establish call to load
